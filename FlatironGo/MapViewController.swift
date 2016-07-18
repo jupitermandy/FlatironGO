@@ -16,9 +16,11 @@ import GeoFire
 //var mapView : MGLMapView!
 class MapViewController: UIViewController, MGLMapViewDelegate, CLLocationManagerDelegate  {
     
+    let backpackButton = UIButton()
     var locationManager = CLLocationManager()
     var userStartLocation = CLLocation()
-    let backpackButton = UIButton()
+    var treasureLocations: [String: GPSLocation] = [:]
+    var treasures: [String: Treasure] = [:]
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -48,26 +50,56 @@ class MapViewController: UIViewController, MGLMapViewDelegate, CLLocationManager
             
         }
         
-        // Create GeoFire reference
-        let geofireRef = FIRDatabase.database().referenceWithPath("Treasures")
+        getTreasuresFor(self.userStartLocation)
+        setUpConstraintsOn(mapView, withCoordinate: self.userStartLocation.coordinate)
+        setUpBackpackButton()
+    }
+    
+    func getTreasuresFor(location: CLLocation) {
+    
+        let geofireRef = FIRDatabase.database().referenceWithPath(FIRReferencePath.treasureLocations)
         let geoFire = GeoFire(firebaseRef: geofireRef)
+        let geoQuery = geoFire.queryAtLocation(location, withRadius: 10.0)
         
-        // Create radius query
-        let geoQuery = geoFire.queryAtLocation(self.userStartLocation, withRadius: 8.0)
-        
-        // Add observer for entry into location
-        _ = geoQuery.observeEventType(.KeyEntered) { (key: String!, location: CLLocation!) in
+        _ = geoQuery.observeEventType(.KeyEntered) { (key: String?, location: CLLocation?) in
             
-            print("\n\nKey:\n'\(key)'Location:\n\(location)\n\n")
-            
+            if let geoKey = key, geoLocation = location {
+                let lat = Float((geoLocation.coordinate.latitude))
+                let long = Float((geoLocation.coordinate.longitude))
+                self.treasureLocations[geoKey] = (GPSLocation.init(latitude: lat, longitude: long))
+                self.getTreasureProfileFor(geoKey)
+            }
         }
+    }
+    
+    func getTreasureProfileFor(key: String) {
         
-        // Setup the mapview's constraints
+        let profileRef = FIRDatabase.database().referenceWithPath(FIRReferencePath.treasureProfiles + "/" + key)
+        
+        _ = profileRef.observeEventType(FIRDataEventType.Value, withBlock: { snapshot in
+            
+            if let profile = snapshot.value as? [String: AnyObject] {
+                
+                if let treasureLocation = self.treasureLocations[snapshot.key] {
+                        
+                        let name = profile["name"] as! String
+                        let imageURL = profile["imageURL"] as! String
+                        let treasure = Treasure.init(location: treasureLocation, name: name, imageURLString: imageURL)
+                        self.treasures[snapshot.key] = treasure
+                    
+                }
+            }
+            
+        })
+    }
+    
+    func setUpConstraintsOn(mapView: MGLMapView, withCoordinate: CLLocationCoordinate2D) {
+        
         mapView.snp_makeConstraints{(make) -> Void in
-
+            
             mapView.pitchEnabled = true
             
-            mapView.setCenterCoordinate(self.userStartLocation.coordinate, zoomLevel: 15, direction: 0, animated: false)
+            mapView.setCenterCoordinate(withCoordinate, zoomLevel: 15, direction: 0, animated: false)
             
             view.addSubview(mapView)
             
@@ -76,7 +108,6 @@ class MapViewController: UIViewController, MGLMapViewDelegate, CLLocationManager
             }
             
         }
-        setUpBackpackButton()
     }
     
     func getUserLocation() -> CLLocation?   {
