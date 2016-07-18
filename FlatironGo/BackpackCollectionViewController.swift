@@ -52,9 +52,9 @@ class BackpackCollectionViewController: UICollectionViewController {
     }
 
     override func collectionView(collectionView: UICollectionView, cellForItemAtIndexPath indexPath: NSIndexPath) -> UICollectionViewCell {
-        let cell = collectionView.dequeueReusableCellWithReuseIdentifier(reuseIdentifier, forIndexPath: indexPath) as! BackpackCollectionViewCell /* else {print("error, fix this later"); return UICollectionViewCell()}*/
+        let cell = collectionView.dequeueReusableCellWithReuseIdentifier(reuseIdentifier, forIndexPath: indexPath) as! BackpackCollectionViewCell
         let currentTreasure = treasureArray[indexPath.row]
-        cell.treasureImageView.image = currentTreasure.image
+        if let image = currentTreasure.image { cell.treasureImageView.image = image }
         cell.treasureNameLabel.text = currentTreasure.name
         cell.treasureNameLabel.textColor = UIColor.flatironBlueColor()
         cell.backgroundColor = UIColor.clearColor()

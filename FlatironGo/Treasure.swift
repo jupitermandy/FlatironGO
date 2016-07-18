@@ -32,11 +32,11 @@ struct Treasure: CustomStringConvertible {
         item.contents = image.CGImage
     }
     
-    func makeImage(imageURLString: String) -> UIImage {
+    func makeImage(imageURLString: String) -> UIImage? {
         guard let
             imageURL = NSURL(string: imageURLString),
             data = NSData(contentsOfURL: imageURL),
-            image = UIImage(data: data) else { print("Error getting the image. Fix this later yo"); return UIImage()}
+            image = UIImage(data: data) else { print("Error getting the image. Fix this later yo"); return nil}
         return image
     }
 }
